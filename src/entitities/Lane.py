@@ -10,4 +10,4 @@ class Lane(pygame.sprite.Sprite):
         self.end_point = end_point
 
     def draw_line(self):
-        pygame.draw.line(self.screen, (0, 0, 0), self.begin_point, self.end_point, 1)  # Cercle rouge
+        pygame.draw.line(self.screen, (255, 255, 255), self.begin_point, self.end_point, 1)  # Cercle rouge

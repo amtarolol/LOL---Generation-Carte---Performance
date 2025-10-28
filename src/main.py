@@ -1,67 +1,80 @@
 import pygame
 import random
-# ⚠️ Vérifie le nom du package : "entities" vs "entitities"
+from scenes.menu import run_menu
 from entitities.Buff import Buff
-from Lane import Lane
+from entitities.Lane import Lane
+from entitities.Bush import Bush
 
 pygame.init()
 screen = pygame.display.set_mode((1200, 720))
 map_width, map_height = screen.get_size()
 clock = pygame.time.Clock()
-running = True
+
+
+def bush_generation(nb_bush, map_width, map_height):
+    bushes = []
+    rects = []
+    w, h = Bush.get_size()
+    max_attempts = 100
+    for _ in range(nb_bush):
+        for _ in range(max_attempts):
+            x = random.randint(0, max(0, map_width  - w))
+            y = random.randint(0, max(0, map_height - h))
+            test_rect = pygame.Rect(x, y, w, h)
+            if any(test_rect.colliderect(r) for r in rects):
+                continue
+            bush = Bush((x + w // 2, y + h // 2))
+            bushes.append(bush)
+            rects.append(bush.rect)
+            break
+        else:
+            print(f"Impossible de placer un bush sans collision après {max_attempts} tentatives.")
+    return bushes
 
 def buff_generation(nb_buff, map_width, map_height):
     buffs = []
-    rects = []  # pour tester les collisions sans instancier des Buff à répétition
-    w, h = Buff.get_size()  # ← une seule fois
-
+    rects = []
+    w, h = Buff.get_size()
     max_attempts = 100
     for _ in range(nb_buff):
         for _ in range(max_attempts):
             x = random.randint(0, max(0, map_width  - w))
             y = random.randint(0, max(0, map_height - h))
             test_rect = pygame.Rect(x, y, w, h)
-
             if any(test_rect.colliderect(r) for r in rects):
                 continue
-
-            # place le vrai buff une fois validé
             buff = Buff((x + w // 2, y + h // 2))
             buffs.append(buff)
-            rects.append(buff.rect)  # garder le rect réel
+            rects.append(buff.rect)
             break
         else:
             print(f"Impossible de placer un buff sans collision après {max_attempts} tentatives.")
     return buffs
 
-all_buffs = buff_generation(10, map_width, map_height)
-all_sprites = pygame.sprite.Group(all_buffs)
+def run_game(screen, nb_buffs, start_pt, end_pt):
+    W, H = screen.get_size()
+    lane = Lane(screen, start_pt, end_pt)
+    all_bushes = bush_generation(30, W, H)
+    all_buffs = buff_generation(nb_buffs, W, H)
+    all_sprites = pygame.sprite.Group(all_bushes + all_buffs)
 
-# Récup les points d'origine et de fin de la ligne
-point_debut = (0, 50)
-point_fin = (map_width, map_height - 50)
+    clock = pygame.time.Clock()
+    running = True
 
-# Créer la lane
-lane = Lane(screen, point_debut, point_fin)
+    while running:
+        for e in pygame.event.get():
+            if e.type == pygame.QUIT:
+                running = False
 
+        screen.fill("black")
+        lane.draw_line()
+        all_sprites.draw(screen)
+        pygame.display.flip()
 
-while running:
-    dt = clock.tick(60) / 1000.0  # secondes
-
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-
-    screen.fill("white")
-    all_sprites.draw(screen)
-
-
-
-    # Dessiner la lane
-    lane.draw_line()
-    
-   
-
-    pygame.display.flip()
-
-pygame.quit()
+if __name__ == "__main__":
+    pygame.display.set_caption("Buff Generator Demo")
+    result = run_menu(screen)
+    if result is not None:
+        nb, start_pt, end_pt = result
+        run_game(screen, nb, start_pt, end_pt)
+    pygame.quit()
