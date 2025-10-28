@@ -76,7 +76,6 @@ def _iter_candidate_cells(map_w, map_h, cell_size, rng):
     for cx, cy in idxs:
         yield cx * cell_size, cy * cell_size
 
-# --- remplace ta fonction generate_sprites par celle-ci ---
 def generate_sprites(
     count: int,
     map_w: int,
@@ -180,7 +179,7 @@ def generate_sprites(
 
 
 
-def bush_generation(n, W, H, p0, p1, *, dist_to_lane_min=200, max_attempts=100, existing_rects=None, seed=None, placement="random"):
+def bush_generation(n, W, H, p0, p1, *, dist_to_lane_min=200, max_attempts=100, existing_rects=None, seed=None, placement="grid"):
     rng = random.Random(seed) if seed is not None else None
     return generate_sprites(
         n, W, H,
@@ -191,9 +190,10 @@ def bush_generation(n, W, H, p0, p1, *, dist_to_lane_min=200, max_attempts=100, 
         max_attempts=max_attempts,
         existing_rects=existing_rects,
         rng=rng,
+        placement=placement,
     )
 
-def buff_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, existing_rects=None, seed=None, placement="random"):
+def buff_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, existing_rects=None, seed=None, placement="grid"):
     rng = random.Random(seed) if seed is not None else None
     return generate_sprites(
         n, W, H,
@@ -204,6 +204,7 @@ def buff_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, e
         max_attempts=max_attempts,
         existing_rects=existing_rects,
         rng=rng,
+        placement=placement,
     )
 def iter_candidate_cells(map_w, map_h, cell):
     cols = max(1, map_w // cell)
