@@ -24,8 +24,6 @@ class Tools:
                              line_end_x * line_begin_y - line_end_y * line_begin_x)
         diviseur = math.sqrt((line_end_y - line_begin_y)**2 + (line_end_x - line_begin_x)**2)
 
-        print(dividende / diviseur)
-
         return dividende / diviseur
 
 

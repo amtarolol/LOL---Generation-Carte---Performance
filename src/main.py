@@ -3,10 +3,11 @@ import random
 from scenes.menu import run_menu
 
 
-from Lane import Lane
+
+from entities.Lane import Lane
 from Tools import Tools
-from Bush import Bush
-from Buff import Buff
+from entities.Bush import Bush
+from entities.Buff import Buff
 
 
 pygame.init()
@@ -87,8 +88,6 @@ def check_collide(rect, rects):
     return False
 
 
-all_buffs = buff_generation(100, map_width, map_height)
-all_sprites = pygame.sprite.Group(all_buffs)
 
 
 if __name__ == "__main__":
