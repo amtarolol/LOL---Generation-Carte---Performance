@@ -2,7 +2,7 @@ import pygame
 import random
 # ⚠️ Vérifie le nom du package : "entities" vs "entitities"
 from entitities.Buff import Buff
-from lane import Lane
+from Lane import Lane
 
 pygame.init()
 screen = pygame.display.set_mode((1200, 720))
