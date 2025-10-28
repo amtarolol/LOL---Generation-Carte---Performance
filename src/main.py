@@ -2,6 +2,7 @@ import pygame
 import random
 # ⚠️ Vérifie le nom du package : "entities" vs "entitities"
 from entitities.Buff import Buff
+from lane import Lane
 
 pygame.init()
 screen = pygame.display.set_mode((1200, 720))
@@ -36,6 +37,14 @@ def buff_generation(nb_buff, map_width, map_height):
 all_buffs = buff_generation(10, map_width, map_height)
 all_sprites = pygame.sprite.Group(all_buffs)
 
+# Récup les points d'origine et de fin de la ligne
+point_debut = (0, 50)
+point_fin = (screen_width, screen_height - 50)
+
+# Créer la lane
+lane = Lane(screen, point_debut, point_fin)
+
+
 while running:
     dt = clock.tick(60) / 1000.0  # secondes
 
@@ -45,6 +54,14 @@ while running:
 
     screen.fill("black")
     all_sprites.draw(screen)
+
+
+
+    # Dessiner la lane
+    lane.draw_line()
+    
+    # Dessiner le buff
+    screen.blit(buff.image, buff.rect)  # Utilise buff.image et buff.rect
 
     pygame.display.flip()
 
