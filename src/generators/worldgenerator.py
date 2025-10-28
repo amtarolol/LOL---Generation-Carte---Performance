@@ -89,8 +89,7 @@ def generate_sprites(
     dist_to_lane_min: int = 20,   
     max_attempts: int = 100,       
     existing_rects: list[pygame.Rect] | None = None,
-    rng: random.Random | None = None,
-    tools_cls=None,                
+    rng: random.Random | None = None,                
     placement: str = "grid",       
     cell_jitter_frac: float = 0.3  
 ):
@@ -110,10 +109,6 @@ def generate_sprites(
     lane_rejected = 0
     collisions_rejected = 0
 
-    ax, ay = lane_start
-    bx, by = lane_end
-    min_d2 = dist_to_lane_min * dist_to_lane_min
-
     t0 = time.perf_counter()
 
     x_max = max(0, map_w - w)
@@ -128,7 +123,8 @@ def generate_sprites(
         y = max(0, min(y, y_max))
 
         cx, cy = x + (w // 2), y + (h // 2)
-        if _dist2_point_segment(ax, ay, bx, by, cx, cy) <= min_d2:
+        # _dist2_point_segment(ax, ay, bx, by, cx, cy) <= min_d2
+        if Tools.get_distance_line_point(lane_start, lane_end, (cx, cy)) <= dist_to_lane_min:
             lane_rejected += 1
             return False
 
@@ -184,7 +180,7 @@ def generate_sprites(
 
 
 
-def bush_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, existing_rects=None, seed=None, placement="random"):
+def bush_generation(n, W, H, p0, p1, *, dist_to_lane_min=200, max_attempts=100, existing_rects=None, seed=None, placement="random"):
     rng = random.Random(seed) if seed is not None else None
     return generate_sprites(
         n, W, H,
@@ -195,7 +191,6 @@ def bush_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, e
         max_attempts=max_attempts,
         existing_rects=existing_rects,
         rng=rng,
-        tools_cls=Tools,
     )
 
 def buff_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, existing_rects=None, seed=None, placement="random"):
@@ -209,7 +204,6 @@ def buff_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, e
         max_attempts=max_attempts,
         existing_rects=existing_rects,
         rng=rng,
-        tools_cls=Tools,
     )
 def iter_candidate_cells(map_w, map_h, cell):
     cols = max(1, map_w // cell)
