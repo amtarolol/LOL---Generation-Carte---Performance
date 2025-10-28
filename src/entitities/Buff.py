@@ -16,26 +16,26 @@ class Buff(pygame.sprite.Sprite):
         self.image = self.frames[self.frame_index]
         self.rect = self.image.get_rect(center=pos)
 
-
-    def _load_assets(self):
-        if self._frames is not None:
+    @staticmethod
+    def _load_assets():
+        if Buff._frames is not None:
             return
         # charge ta sprite sheet ./assets/buff/idle.png
         sheet = pygame.image.load(os.path.join("assets","images", "buff", "idle.png")).convert_alpha()
 
         # paramètres de ta sheet (adapte si besoin)
         fw, fh, n = 128, 128, 5
-        self._frames = []
+        Buff._frames = []
         for i in range(n):
             surf = pygame.Surface((fw, fh), pygame.SRCALPHA)
             surf.blit(sheet, (0, 0), (i*fw, 0, fw, fh))
-            self._frames.append(surf)
-        self._frame_size = (fw, fh)
+            Buff._frames.append(surf)
+        Buff._frame_size = (fw, fh)
 
-
-    def get_size(self):
-        self._load_assets()
-        return self._frame_size
+    @staticmethod
+    def get_size():
+        Buff._load_assets()
+        return Buff._frame_size
 
 
     def update(self, dt):
