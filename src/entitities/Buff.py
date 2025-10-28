@@ -12,6 +12,7 @@ class Buff(pygame.sprite.Sprite):
         self.frame_index = 0
         self.anim_speed = 0.15  # s/frame
         self.timer = 0.0
+        self.pos = pos
 
         self.image = self.frames[self.frame_index]
         self.rect = self.image.get_rect(center=pos)
@@ -47,3 +48,6 @@ class Buff(pygame.sprite.Sprite):
             center = self.rect.center
             self.image = self.frames[self.frame_index]
             self.rect = self.image.get_rect(center=center)
+
+    def get_pos(self):
+        return self.pos
