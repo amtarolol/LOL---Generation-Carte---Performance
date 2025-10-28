@@ -6,22 +6,20 @@ class Lane(pygame.sprite.Sprite):
         super().__init__()
         # Créer une surface pour le buff (ex: un cercle rouge)
         self.screen = screen
-        self.begin_point = begin_point
-        self.end_point = end_point
+        self.begin_point, self.end_point = self._get_furthest_points(begin_point, end_point)
 
     def draw_line(self):
-        points = self.get_furthest_points()
-        pygame.draw.line(self.screen, (255, 255, 255), points[0], points[1], 1)  # Cercle rouge
+        pygame.draw.line(self.screen, (255, 255, 255), self.begin_point, self.end_point, 1)  # Cercle rouge
 
     def get_line_pos(self):
         return (self.begin_point, self.end_point)
 
-    def get_furthest_points(self):
+    def _get_furthest_points(self, begin_point, end_point):
         width, height = self.screen.get_size()
         points = []
 
-        x1, y1 = self.begin_point
-        x2, y2 = self.end_point
+        x1, y1 = begin_point
+        x2, y2 = end_point
 
         if x1 == x2:
             return [(x1, 0), (x1, height)]
