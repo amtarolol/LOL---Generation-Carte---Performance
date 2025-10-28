@@ -49,6 +49,6 @@ class Bush(pygame.sprite.Sprite):
     @classmethod
     def get_size(cls):
 
-        img = cls._get_image("green")  # n'importe lequel
+        img = cls._get_image("Green")  # n'importe lequel
         return img.get_size()
 
