@@ -32,6 +32,8 @@ class SceneManager:
         self.scene = initial_scene_cls(screen)
         self.scene.on_enter(**kwargs)
         self.running = True
+        self.scene.scene_manager = self
+
 
     def run(self):
         while self.running:
