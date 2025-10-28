@@ -1,6 +1,6 @@
-# main.py
+
 import pygame
-from core.scene import SceneManager
+from managers.SceneManager import SceneManager
 from scenes.menu import MenuScene
 
 def main():

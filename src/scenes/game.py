@@ -1,9 +1,8 @@
-# scenes/game.py
+
 import os
 import pygame
 from core.scene import Scene
 from entities.Lane import Lane
-# ⚠️ Assure-toi que le nom du module est bien "worldgen"
 from generators.worldgenerator import bush_generation, buff_generation
 
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "images")
