@@ -39,7 +39,7 @@ all_sprites = pygame.sprite.Group(all_buffs)
 
 # Récup les points d'origine et de fin de la ligne
 point_debut = (0, 50)
-point_fin = (screen_width, screen_height - 50)
+point_fin = (map_width, map_height - 50)
 
 # Créer la lane
 lane = Lane(screen, point_debut, point_fin)
@@ -52,7 +52,7 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    screen.fill("black")
+    screen.fill("white")
     all_sprites.draw(screen)
 
 
@@ -60,8 +60,7 @@ while running:
     # Dessiner la lane
     lane.draw_line()
     
-    # Dessiner le buff
-    screen.blit(buff.image, buff.rect)  # Utilise buff.image et buff.rect
+   
 
     pygame.display.flip()
 
