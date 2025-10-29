@@ -1,4 +1,4 @@
-# scenes/menu.py
+# scenes/menu.py — version avec choix d'algo (grid/random) et seed optionnelle
 import pygame
 from core.scene import Scene
 
@@ -13,6 +13,8 @@ class MenuScene(Scene):
         self.nb_buffs_str = "10"      # texte saisi (string)
         self.nb_bushes_str = "30"
         self.nb_min, self.nb_max = 0, 9999
+        self.algorithm = "grid"        # "grid" ou "random"
+        self.seed_str = ""             # vide => pas de seed (aléatoire)
         self.start_pt = None
         self.end_pt = None
 
@@ -27,10 +29,23 @@ class MenuScene(Scene):
         self.buffs_rect  = pygame.Rect(center_x - field_w//2, self.H // 2 - (field_h + gap), field_w, field_h)
         self.bushes_rect = pygame.Rect(center_x - field_w//2, self.H // 2 + 10,               field_w, field_h)
 
-        # Bouton démarrer
-        self.start_rect = pygame.Rect(center_x - 160, self.H // 2 + 120, 320, 64)
+        # Ligne Algo + Seed
+        algo_y = self.H // 2 + 75
+        seed_y = algo_y + 56 + 12
 
-        # Focus (None | "buffs" | "bushes")
+        # Boutons algo
+        btn_w, btn_h = 120, 44
+        self.grid_btn_rect   = pygame.Rect(center_x - btn_w - 8, algo_y, btn_w, btn_h)
+        self.random_btn_rect = pygame.Rect(center_x + 8,          algo_y, btn_w, btn_h)
+
+        # Champ seed
+        seed_w, seed_h = 200, 44
+        self.seed_rect = pygame.Rect(center_x - seed_w//2, seed_y, seed_w, seed_h)
+
+        # Bouton démarrer
+        self.start_rect = pygame.Rect(center_x - 160, self.H // 2 + 120 + 90, 320, 64)
+
+        # Focus (None | "buffs" | "bushes" | "seed")
         self.focus = None
 
     # UI helpers
@@ -47,7 +62,6 @@ class MenuScene(Scene):
 
         # Curseur
         if focused:
-            # petit curseur clignotant
             t = (pygame.time.get_ticks() // 500) % 2
             if t == 0:
                 cursor_x = rect.centerx + label.get_width()//2 + 6
@@ -66,6 +80,20 @@ class MenuScene(Scene):
         pygame.draw.circle(self.screen, color, p, 8)
         pygame.draw.circle(self.screen, (255, 255, 255), p, 8, 2)
 
+    def _draw_toggle(self, rect, text, active, hover=False):
+        bg = (60, 68, 80) if not active else (35, 140, 90)
+        if hover and not active:
+            bg = (80, 90, 105)
+        pygame.draw.rect(self.screen, bg, rect, border_radius=10)
+        pygame.draw.rect(self.screen, (180, 180, 200), rect, 2, border_radius=10)
+        label = self.ui_font.render(text, True, (255,255,255))
+        self.screen.blit(label, label.get_rect(center=rect.center))
+
+    def _draw_label_left(self, pos, text):
+        lbl = self.ui_font.render(text, True, (230,230,240))
+        r = lbl.get_rect(midleft=pos)
+        self.screen.blit(lbl, r)
+
     def _parse_int_clamped(self, s):
         if s == "" or s is None:
             return None
@@ -74,6 +102,14 @@ class MenuScene(Scene):
         except ValueError:
             return None
         return max(self.nb_min, min(self.nb_max, v))
+
+    def _parse_optional_int(self, s):
+        if s is None or s == "":
+            return None
+        try:
+            return int(s)
+        except ValueError:
+            return None
 
     def handle_event(self, e):
         if e.type == pygame.KEYDOWN:
@@ -85,24 +121,37 @@ class MenuScene(Scene):
             if e.key == pygame.K_RETURN:
                 nb_buffs  = self._parse_int_clamped(self.nb_buffs_str)
                 nb_bushes = self._parse_int_clamped(self.nb_bushes_str)
+                seed      = self._parse_optional_int(self.seed_str)
                 if self.start_pt and self.end_pt and (nb_buffs is not None) and (nb_bushes is not None):
                     from scenes.game import GameScene
-                    self.switch_to(GameScene,
-                                   nb_buffs=nb_buffs,
-                                   nb_bushes=nb_bushes,
-                                   start_pt=self.start_pt,
-                                   end_pt=self.end_pt)
+                    self.switch_to(
+                        GameScene,
+                        nb_buffs=nb_buffs,
+                        nb_bushes=nb_bushes,
+                        start_pt=self.start_pt,
+                        end_pt=self.end_pt,
+                        placement=self.algorithm,
+                        seed=seed,
+                    )
                 return
 
             # Saisie numérique / backspace sur champ focus
             if self.focus is not None:
-                target = "nb_buffs_str" if self.focus == "buffs" else "nb_bushes_str"
+                target_map = {
+                    "buffs":  "nb_buffs_str",
+                    "bushes": "nb_bushes_str",
+                    "seed":   "seed_str",
+                }
+                target = target_map[self.focus]
                 if e.key == pygame.K_BACKSPACE:
                     setattr(self, target, getattr(self, target)[:-1])
-                elif e.unicode.isdigit():
-                    # Ajoute chiffre, mais limite la longueur
+                elif e.key == pygame.K_MINUS and self.focus == "seed":
                     curr = getattr(self, target)
-                    if len(curr) < 6:
+                    if len(curr) < 9 and len(curr) == 0:
+                        setattr(self, target, curr + "-")
+                elif e.unicode.isdigit():
+                    curr = getattr(self, target)
+                    if len(curr) < 9:
                         setattr(self, target, curr + e.unicode)
 
             # R pour reset points
@@ -113,23 +162,34 @@ class MenuScene(Scene):
             mx, my = e.pos
             # Focus champs
             if self.buffs_rect.collidepoint(mx, my):
-                self.focus = "buffs"
-                return
+                self.focus = "buffs"; return
             if self.bushes_rect.collidepoint(mx, my):
-                self.focus = "bushes"
-                return
+                self.focus = "bushes"; return
+            if self.seed_rect.collidepoint(mx, my):
+                self.focus = "seed"; return
+
+            # Boutons algo
+            if self.grid_btn_rect.collidepoint(mx, my):
+                self.algorithm = "grid"; return
+            if self.random_btn_rect.collidepoint(mx, my):
+                self.algorithm = "random"; return
 
             # Bouton démarrer
             if self.start_rect.collidepoint(mx, my):
                 nb_buffs  = self._parse_int_clamped(self.nb_buffs_str)
                 nb_bushes = self._parse_int_clamped(self.nb_bushes_str)
+                seed      = self._parse_optional_int(self.seed_str)
                 if self.start_pt and self.end_pt and (nb_buffs is not None) and (nb_bushes is not None):
                     from scenes.game import GameScene
-                    self.switch_to(GameScene,
-                                   nb_buffs=nb_buffs,
-                                   nb_bushes=nb_bushes,
-                                   start_pt=self.start_pt,
-                                   end_pt=self.end_pt)
+                    self.switch_to(
+                        GameScene,
+                        nb_buffs=nb_buffs,
+                        nb_bushes=nb_bushes,
+                        start_pt=self.start_pt,
+                        end_pt=self.end_pt,
+                        placement=self.algorithm,
+                        seed=seed,
+                    )
                 return
 
             # Sinon : placement / déplacement des points
@@ -141,7 +201,6 @@ class MenuScene(Scene):
                 # remplace le plus proche
                 sx, sy = self.start_pt
                 ex, ey = self.end_pt
-                mx, my = e.pos
                 if (mx - sx)**2 + (my - sy)**2 <= (mx - ex)**2 + (my - ey)**2:
                     self.start_pt = e.pos
                 else:
@@ -181,6 +240,15 @@ class MenuScene(Scene):
         self._draw_input(self.buffs_rect,  self.nb_buffs_str,  "ex: 10",  focused=(self.focus=="buffs"))
         self._draw_input(self.bushes_rect, self.nb_bushes_str, "ex: 30",  focused=(self.focus=="bushes"))
 
+        # Algo + Seed
+        mouse = pygame.mouse.get_pos()
+        self._draw_label_left((self.W//2 - 220, self.H // 2 + 75), "Algorithme :")
+        self._draw_toggle(self.grid_btn_rect,   "GRID",   self.algorithm=="grid",   self.grid_btn_rect.collidepoint(mouse))
+        self._draw_toggle(self.random_btn_rect, "RANDOM", self.algorithm=="random", self.random_btn_rect.collidepoint(mouse))
+
+        self._draw_label_left((self.W//2 - 220, self.H // 2 + 75 + 56 + 12), "Seed :")
+        self._draw_input(self.seed_rect, self.seed_str, "ex: (vide) ou 42", focused=(self.focus=="seed"))
+
         # Bouton démarrer
         ready = self.start_pt and self.end_pt and \
                 (self._parse_int_clamped(self.nb_buffs_str) is not None) and \
@@ -189,6 +257,9 @@ class MenuScene(Scene):
                           self.start_rect.collidepoint(pygame.mouse.get_pos()))
 
         # Aide
-        hint = self.small_font.render("Clic: fixer un point • R: reset points • Entrée: valider • Échap: quitter • Clique dans un champ pour saisir un nombre",
-                                      True, (170, 170, 190))
+        hint = self.small_font.render(
+            "Clic: fixer un point • R: reset points • Entrée: valider • Échap: quitter • "
+            "Clique dans un champ pour saisir • Choisis l'algo • Seed vide = aléatoire",
+            True, (170, 170, 190)
+        )
         self.screen.blit(hint, hint.get_rect(center=(self.W//2, self.H - 40)))

@@ -3,7 +3,7 @@ import os
 import pygame
 from core.scene import Scene
 from entities.Lane import Lane
-from generators.worldgenerator import bush_generation, buff_generation
+from generators.world.api import bush_generation, buff_generation
 
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "images")
 
@@ -14,6 +14,8 @@ class GameScene(Scene):
         self.nb_bushes = kwargs["nb_bushes"]
         self.start_pt = kwargs["start_pt"]
         self.end_pt = kwargs["end_pt"]
+        self.seed = kwargs.get("seed")            
+        self.placement = kwargs.get("placement", "grid")  
 
         bg_path = os.path.join(ASSETS_DIR, "preview.png")
         try:
@@ -30,14 +32,35 @@ class GameScene(Scene):
         self.show_hud = True
 
     def _generate_world(self):
-        # ⬇️ Décomposition des 3 valeurs renvoyées
+        seed = getattr(self, "seed", None)  # tu peux la passer via kwargs si tu veux
+        placement = getattr(self, "placement", "grid")
+        
         self.bushes, rects_bush, self.bush_stats = bush_generation(
-            self.nb_bushes, self.W, self.H, self.start_pt, self.end_pt
+            n=self.nb_bushes, 
+            W=self.W,
+            H=self.H,
+            p0=self.start_pt, 
+            p1=self.end_pt,
+            dist_to_lane_min=200,
+            max_attempts=100,
+            existing_rects=None,
+            seed=self.seed,
+            placement=self.placement
         )
-        self.buffs, rects_all, self.buff_stats = buff_generation(
-            self.nb_buffs, self.W, self.H, self.start_pt, self.end_pt,
-            existing_rects=rects_bush
+
+        self.buffs, _rects_all, self.buff_stats = buff_generation(
+            n=self.nb_buffs,
+            W=self.W,
+            H=self.H,
+            p0=self.start_pt, 
+            p1=self.end_pt,
+            dist_to_lane_min=20,
+            max_attempts=100, 
+            existing_rects=rects_bush,
+            seed=self.seed,
+            placement=self.placement
         )
+
         self.all_sprites = pygame.sprite.Group(self.bushes + self.buffs)
 
     def handle_event(self, e):
