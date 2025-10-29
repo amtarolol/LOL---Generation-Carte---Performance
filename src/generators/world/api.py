@@ -39,39 +39,6 @@ def generate_sprites(
     return gen.place()
 
 
-
-def bush_generation(n, W, H, p0, p1, *, dist_to_lane_min=200, max_attempts=100, existing_rects=None, seed=None, placement):
-    rng = random.Random(seed) if seed is not None else None
-    cfg = PlacementConfig(
-        count=n,
-        bounds=MapBounds(W, H),
-        lane=Lane(p0, p1, dist_to_lane_min),
-        object_spec=ObjectSpec(get_size=Bush.get_size, factory=lambda pos: Bush(pos)),
-        placement_mode=placement,
-        max_attempts_per_item=max_attempts,
-        seed=seed,
-    )
-    return GridGenerator(cfg, existing_rects).place()
-
-
-
-
-def buff_generation(n, W, H, p0, p1, *, dist_to_lane_min=20, max_attempts=100, existing_rects=None, seed=None, placement):
-    rng = random.Random(seed) if seed is not None else None
-    cfg = PlacementConfig(
-        count=n,
-        bounds=MapBounds(W, H),
-        lane=Lane(p0, p1, dist_to_lane_min),
-        object_spec=ObjectSpec(get_size=Buff.get_size, factory=lambda pos: Buff(pos)),
-        placement_mode=placement,
-        max_attempts_per_item=max_attempts,
-        seed=seed,
-    )
-    return GridGenerator(cfg, existing_rects).place()
-
-
 __all__ = [
 "generate_sprites",
-"bush_generation",
-"buff_generation",
 ]

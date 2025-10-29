@@ -3,7 +3,9 @@ import os
 import pygame
 from core.scene import Scene
 from entities.Lane import Lane
-from generators.world.api import bush_generation, buff_generation
+from generators.world.api import generate_sprites
+from entities.Bush import Bush
+from entities.Buff import Buff
 
 ASSETS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets", "images")
 
@@ -32,33 +34,35 @@ class GameScene(Scene):
         self.show_hud = True
 
     def _generate_world(self):
-        seed = getattr(self, "seed", None)  # tu peux la passer via kwargs si tu veux
-        placement = getattr(self, "placement", "grid")
-        
-        self.bushes, rects_bush, self.bush_stats = bush_generation(
-            n=self.nb_bushes, 
-            W=self.W,
-            H=self.H,
-            p0=self.start_pt, 
-            p1=self.end_pt,
-            dist_to_lane_min=200,
-            max_attempts=100,
-            existing_rects=None,
-            seed=self.seed,
-            placement=self.placement
+
+        self.bushes, rects_bush, self.bush_stats = generate_sprites(
+            total_to_place=self.nb_bushes,
+            map_width=self.W,
+            map_height=self.H,
+            get_size=Bush.get_size, 
+            factory=lambda pos: Bush(pos),
+            lane_start_point=self.start_pt,
+            lane_end_point=self.end_pt,
+            min_distance_to_lane=100,
+            max_placement_attempts=100,
+            existing_object_rects=None,
+            rng=self.seed,
+            placement_mode=self.placement
         )
 
-        self.buffs, _rects_all, self.buff_stats = buff_generation(
-            n=self.nb_buffs,
-            W=self.W,
-            H=self.H,
-            p0=self.start_pt, 
-            p1=self.end_pt,
-            dist_to_lane_min=20,
-            max_attempts=100, 
-            existing_rects=rects_bush,
-            seed=self.seed,
-            placement=self.placement
+        self.buffs, _rects_all, self.buff_stats = generate_sprites(
+            total_to_place=self.nb_buffs,
+            map_width=self.W,
+            map_height=self.H,
+            get_size=Buff.get_size, 
+            factory=lambda pos: Buff(pos),
+            lane_start_point=self.start_pt,
+            lane_end_point=self.end_pt,
+            min_distance_to_lane=20,
+            max_placement_attempts=100,
+            existing_object_rects=rects_bush,
+            rng=self.seed,
+            placement_mode=self.placement
         )
 
         self.all_sprites = pygame.sprite.Group(self.bushes + self.buffs)
