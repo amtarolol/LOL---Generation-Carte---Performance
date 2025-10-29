@@ -5,7 +5,7 @@ from scenes.menu import MenuScene
 
 def main():
     pygame.init()
-    screen = pygame.display.set_mode((1200, 720))
+    screen = pygame.display.set_mode((0,0), pygame.FULLSCREEN)
     pygame.display.set_caption("Scene System Demo")
     manager = SceneManager(screen, MenuScene)
     manager.run()
