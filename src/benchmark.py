@@ -1,9 +1,9 @@
-import timeit
 import pygame
-import textwrap
 from generators.world.api import generate_sprites
-from generators.world.grid_generator import GridGenerator
-import os
+import time
+import tracemalloc
+import statistics
+import pygame
 
 
 # --- MOCKS pour faire tourner le benchmark ---
@@ -33,74 +33,94 @@ class Bush(pygame.sprite.Sprite):
     def get_size(cls):
         return (32, 32)
 
-# --- Benchmark avec timeit ---
-setup_code = """
-from __main__ import pygame, generate_sprites, Buff, Bush, os
-import random
-rng = 45
-os.environ["SDL_VIDEODRIVER"] = "dummy"
-pygame.init()
-pygame.display.set_mode((1,1))
-"""
+
+# --- Benchmark Function ---
+def benchmark_with_tracemalloc(func, repeat=10):
+    mem_peaks = []
+    results = []
+
+    for _ in range(repeat):
+        tracemalloc.start()
+
+        result = func()
+
+        current, peak = tracemalloc.get_traced_memory()
+        tracemalloc.stop()
+
+        mem_peaks.append(peak / 1024)  # Ko
+        results.append(result[2])
+
+    return {
+        "results": results,
+        "mean_mem_kb": statistics.mean(mem_peaks),
+        "std_mem_kb": statistics.stdev(mem_peaks) if repeat > 1 else 0,
+    }
 
 
-def get_test_code(placement_mode, type) :
-    code = f"""
-            generate_sprites(
-                total_to_place=300,
-                map_width=800,
-                map_height=600,
-                get_size={type}.get_size,
-                factory=lambda pos: {type}(pos),
-                lane_start_point=(0, 50),
-                lane_end_point=(800, 550),
-                min_distance_to_lane=50,
-                max_placement_attempts=100,
-                existing_object_rects=[],
-                rng=0,
-                placement_mode="{placement_mode}",
-            )
-    """
-    return textwrap.dedent(code).strip()
+def print_results(stats_list):
+    
+    # Helper pour gérer les divisions / attributs manquants
+    def safe_get(attr):
+        return [getattr(s, attr, 0) for s in stats_list]
+
+    # Calcul des moyennes
+    avg = {
+        "requested": statistics.mean(safe_get("requested")),
+        "placed": statistics.mean(safe_get("placed")),
+        "total_attempts": statistics.mean(safe_get("total_attempts")),
+        "lane_rejected": statistics.mean(safe_get("lane_rejected")),
+        "collisions_rejected": statistics.mean(safe_get("collisions_rejected")),
+        "success_rate": statistics.mean(safe_get("success_rate")),
+        "avg_attempts_per_placed": statistics.mean(safe_get("avg_attempts_per_placed")),
+        "elapsed_ms": statistics.mean(safe_get("elapsed_ms")),
+    }
+
+    # Calcul des écarts-types (si plusieurs runs)
+    std = {}
+    if len(stats_list) > 1:
+        std = {
+            "elapsed_ms": statistics.stdev(safe_get("elapsed_ms")),
+            "success_rate": statistics.stdev(safe_get("success_rate")),
+        }
+
+        # --- Affichage ---
+    print(f"🧩 Objets demandés : {avg['requested']:.0f}")
+    print(f"✅ Objets placés : {avg['placed']:.1f}")
+    print(f"🎯 Taux de succès : {avg['success_rate']*100:.2f}% - Ecart type : {std.get('success_rate', 0)*100:.2f}%")
+    print(f"🔁 Tentatives totales : {avg['total_attempts']:.1f}")
+    print(f"🚧 Rejets (lane): {avg['lane_rejected']:.1f} | collisions: {avg['collisions_rejected']:.1f}")
+    print(f"⚙️  Moy. tentatives/placement : {avg['avg_attempts_per_placed']:.2f}")
+    print(f"⏱ Temps moyen : {avg['elapsed_ms']:.2f} - Ecart type : {std.get('elapsed_ms', 0):.2f} ms")
 
 
-def get_test_code_bush(placement_mode):
-    code = f"""
-            generate_sprites(
-                total_to_place=300,
-                map_width=800,
-                map_height=600,
-                get_size=Bush.get_size,
-                factory=lambda pos: Bush(pos),
-                lane_start_point=(0, 50),
-                lane_end_point=(800, 550),
-                min_distance_to_lane=50,
-                max_placement_attempts=100,
-                existing_object_rects=[],
-                rng=rng,
-                placement_mode="{placement_mode}",
-            )
-    """
-    return textwrap.dedent(code).strip()
-
-
-# Nombre de fois dans un "tour de boucle"
-n = 50
-# Nombre de "tour de boucle"
-repeat = 10
-
+# --- Boucle de test ---
 modes = ["random", "grid"]
-types = ["Bush", "Buff"]
+types = [Buff, Bush]
+
+pygame.init()
 
 for type in types:
     for mode in modes:
+        def run():
+            return generate_sprites(
+                total_to_place=3000,
+                map_width=1000,
+                map_height=1000,
+                get_size=type.get_size,
+                factory=lambda pos: type(pos),
+                lane_start_point=(0, 50),
+                lane_end_point=(1000, 950),
+                min_distance_to_lane=20,
+                max_placement_attempts=100,
+                existing_object_rects=[],
+                rng=0,
+                placement_mode=mode,
+            )
 
-        results = timeit.repeat(stmt=get_test_code(mode, type), setup=setup_code, repeat=repeat, number=n)    
-        avg_ms = (sum(results) / len(results)) * 1000 / n
+        result = benchmark_with_tracemalloc(run, repeat=10)
 
-        print(f"=== Résultats benchmark - Mode \"{mode}\", Type \"{type}\" ===")
-        for i, t in enumerate(results, 1):
-            print(f"Run {i}: {t*1000/n:.2f} ms / appel")
-        print(f"\nMoyenne: {avg_ms:.2f} ms / appel")
+        print(f"=== {str(type):<5} | Mode: {mode:<6} ===")
+        print_results(result["results"])
+        print(f"💾 Pic mémoire : {result['mean_mem_kb']:.1f} - Ecart type : {result['std_mem_kb']:.1f} Ko\n")
 
 pygame.quit()
