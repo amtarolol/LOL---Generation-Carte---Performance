@@ -19,7 +19,6 @@ def generate_sprites(
     min_distance_to_lane: int,
     max_placement_attempts: int,
     existing_object_rects: Optional[list[pygame.Rect]],
-    rng: Optional[random.Random],
     placement_mode: str,
     cell_jitter_fraction: float = 0.3,
     ):
@@ -32,7 +31,6 @@ def generate_sprites(
         placement_mode=placement_mode,
         max_attempts_per_item=max_placement_attempts,
         cell_jitter_fraction=cell_jitter_fraction,
-        seed=(rng.seed if isinstance(rng, random.Random) and hasattr(rng, "seed") else None),
     )
     
     gen = GridGenerator(cfg, existing_rects=existing_object_rects)

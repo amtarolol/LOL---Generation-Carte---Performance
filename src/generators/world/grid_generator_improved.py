@@ -9,9 +9,6 @@ from .types import PlacementConfig, GenStats
 from .spatial_hash import SpatialHash
 from .candidates import iter_candidate_cells
 
-def _rng_from_seed(seed: Optional[int]) -> random.Random:
-    return random.Random(seed) if seed is not None else random
-
 def _compute_cell(obj_get_size):
     w, h = obj_get_size()
     return w, h, max(w, h)
@@ -41,7 +38,6 @@ def _calculate_valid_regions(cfg: PlacementConfig, cell_size: int) -> List[Tuple
 class GridGenerator:
     def __init__(self, cfg: PlacementConfig, existing_rects: Optional[list[pygame.Rect]] = None):
         self.cfg = cfg
-        self.rng = _rng_from_seed(cfg.seed)
         self.obj_w, self.obj_h, self.cell = _compute_cell(cfg.object_spec.get_size)
         self.max_x = max(0, cfg.bounds.width - self.obj_w)
         self.max_y = max(0, cfg.bounds.height - self.obj_h)
@@ -71,9 +67,7 @@ class GridGenerator:
 
         mode = self.cfg.placement_mode
 
-        if mode == "grid":
-            placed.extend(self._place_with_grid())
-        elif mode == "random":
+        if mode == "random":
             placed.extend(self._place_with_random(self.cfg.count))
         elif mode == "adaptive":
             placed.extend(self._place_with_adaptive(self.cfg.count))
@@ -147,8 +141,8 @@ class GridGenerator:
                 break
             for _ in range(attempts_per_region):
                 # Safe because cell_size >= obj_w/obj_h by construction
-                x = rx + self.rng.randint(0, max(0, rw - self.obj_w))
-                y = ry + self.rng.randint(0, max(0, rh - self.obj_h))
+                x = rx + random.randint(0, max(0, rw - self.obj_w))
+                y = ry + random.randint(0, max(0, rh - self.obj_h))
                 ok, spr = self._attempt_place((x, y))
                 if ok and spr:
                     sprites.append(spr)
@@ -157,28 +151,12 @@ class GridGenerator:
         return sprites
 
         
-    
-    def _place_with_grid(self):
-        sprites: list[pygame.sprite.Sprite] = []
-        jitter_x = int(self.cell * self.cfg.cell_jitter_fraction)
-        jitter_y = int(self.cell * self.cfg.cell_jitter_fraction)
-
-        for gx, gy in iter_candidate_cells(self.cfg.bounds.width, self.cfg.bounds.height, self.cell, self.rng):
-            if len(sprites) >= self.cfg.count:
-                break
-            off_x = self.rng.randint(-jitter_x, jitter_x) if jitter_x > 0 else 0
-            off_y = self.rng.randint(-jitter_y, jitter_y) if jitter_y > 0 else 0
-            ok, spr = self._attempt_place((gx + off_x, gy + off_y))
-            if ok and spr:
-                sprites.append(spr)
-        return sprites
-
     def _place_with_random(self, remaining: int):
         sprites: list[pygame.sprite.Sprite] = []
         for _ in range(remaining):
             for _ in range(self.cfg.max_attempts_per_item):
-                rx = self.rng.randint(0, self.max_x) if self.max_x > 0 else 0
-                ry = self.rng.randint(0, self.max_y) if self.max_y > 0 else 0
+                rx = random.randint(0, self.max_x) if self.max_x > 0 else 0
+                ry = random.randint(0, self.max_y) if self.max_y > 0 else 0
                 ok, spr = self._attempt_place((rx, ry))
                 if ok and spr:
                     sprites.append(spr)

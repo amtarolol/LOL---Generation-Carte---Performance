@@ -50,10 +50,9 @@ class PlacementConfig:
     bounds: MapBounds
     lane: Lane
     object_spec: ObjectSpec
-    placement_mode: str = "grid" # "grid" | "random"
+    placement_mode: str = "random" # "random" | "adaptive"
     max_attempts_per_item: int = 100
     cell_jitter_fraction: float = 0.3
-    seed: Optional[int] = None
 
 
 __all__ = [

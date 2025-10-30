@@ -51,9 +51,6 @@ class GridGenerator:
         t0 = time.perf_counter()
         placed: list[pygame.sprite.Sprite] = []
 
-        if self.cfg.placement_mode == "grid":
-            placed.extend(self._place_with_grid())
-
         remaining = self.cfg.count - len(placed)
         if self.cfg.placement_mode == "random" or remaining > 0:
             placed.extend(self._place_with_random(remaining))
@@ -97,21 +94,6 @@ class GridGenerator:
         spr = self.cfg.object_spec.factory((cx, cy))
         self.spatial.insert(spr.rect)
         return True, spr
-
-    def _place_with_grid(self):
-        sprites: list[pygame.sprite.Sprite] = []
-        jitter_x = int(self.cell * self.cfg.cell_jitter_fraction)
-        jitter_y = int(self.cell * self.cfg.cell_jitter_fraction)
-
-        for gx, gy in iter_candidate_cells(self.cfg.bounds.width, self.cfg.bounds.height, self.cell, self.rng):
-            if len(sprites) >= self.cfg.count:
-                break
-            off_x = self.rng.randint(-jitter_x, jitter_x) if jitter_x > 0 else 0
-            off_y = self.rng.randint(-jitter_y, jitter_y) if jitter_y > 0 else 0
-            ok, spr = self._attempt_place((gx + off_x, gy + off_y))
-            if ok and spr:
-                sprites.append(spr)
-        return sprites
 
     def _place_with_random(self, remaining: int):
         sprites: list[pygame.sprite.Sprite] = []

@@ -3,7 +3,6 @@ import pygame
 
 
 class SpatialHash:
-    """Grille spatiale pour des collisions O(k) au lieu de O(n)."""
     __slots__ = ("cell", "grid")
 
     def __init__(self, cell_size: int):

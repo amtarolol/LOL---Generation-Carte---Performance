@@ -16,8 +16,7 @@ class GameScene(Scene):
         self.nb_bushes = kwargs["nb_bushes"]
         self.start_pt = kwargs["start_pt"]
         self.end_pt = kwargs["end_pt"]
-        self.seed = kwargs.get("seed")            
-        self.placement = kwargs.get("placement", "grid")  
+        self.placement = kwargs.get("placement", "random")  
 
         bg_path = os.path.join(ASSETS_DIR, "preview.png")
         try:
@@ -46,7 +45,6 @@ class GameScene(Scene):
             min_distance_to_lane=100,
             max_placement_attempts=100,
             existing_object_rects=None,
-            rng=self.seed,
             placement_mode=self.placement
         )
 
@@ -61,7 +59,6 @@ class GameScene(Scene):
             min_distance_to_lane=20,
             max_placement_attempts=100,
             existing_object_rects=rects_bush,
-            rng=self.seed,
             placement_mode=self.placement
         )
 
@@ -92,7 +89,7 @@ class GameScene(Scene):
                 f"Buff: {self.buff_stats.placed}/{self.buff_stats.requested}  "
                 f"laneRej {self.buff_stats.lane_rejected}  collRej {self.buff_stats.collisions_rejected}",
                 f"Time: bush {self.bush_stats.elapsed_ms:.1f} ms  buff {self.buff_stats.elapsed_ms:.1f} ms",
-                f"Placement: {self.placement}  Seed: {self.seed}",
+                f"Placement: {self.placement}",
             ]
             y = 10
             for s in lines:
