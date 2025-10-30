@@ -94,7 +94,7 @@ def print_results(stats_list):
 
 
 # --- Boucle de test ---
-modes = ["random", "grid"]
+modes = ["random", "grid", "adaptive"]
 types = [Buff, Bush]
 
 pygame.init()
@@ -117,7 +117,7 @@ for type in types:
                 placement_mode=mode,
             )
 
-        result = benchmark_with_tracemalloc(run, repeat=10)
+        result = benchmark_with_tracemalloc(run, repeat=5)
 
         print(f"=== {str(type):<5} | Mode: {mode:<6} ===")
         print_results(result["results"])

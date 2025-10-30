@@ -20,36 +20,23 @@ def _clamp(v: int, lo: int, hi: int) -> int:
     return max(lo, min(v, hi))
 
 def _calculate_valid_regions(cfg: PlacementConfig, cell_size: int) -> List[Tuple[int, int, int, int]]:
-    """Pré-calcule les régions valides pour le placement (éloignées de la lane)."""
-    regions = []
-    
-    # Calculer l'équation de la ligne
-    x1, y1 = cfg.lane.start
-    x2, y2 = cfg.lane.end
-    
-    if x2 - x1 != 0:
-        # Calculer la pente et l'ordonnée à l'origine
-        m = (y2 - y1) / (x2 - x1)
-        b = y1 - m * x1
-        
-        # Diviser la carte en grille de cellules
-        for x in range(0, cfg.bounds.width, cell_size):
-            for y in range(0, cfg.bounds.height, cell_size):
-                # Vérifier les quatre coins de la cellule
-                corners = [(x, y), (x + cell_size, y),
-                          (x, y + cell_size), (x + cell_size, y + cell_size)]
-                
-                valid = True
-                for cx, cy in corners:
-                    dist = Tools.get_distance_line_point(cfg.lane.start, cfg.lane.end, (cx, cy))
-                    if dist <= cfg.lane.min_distance:
-                        valid = False
-                        break
-                
-                if valid:
-                    regions.append((x, y, cell_size, cell_size))
-    
+    """Pré-calcule des régions éloignées de la lane pour l'heuristique 'adaptive'."""
+    regions: List[Tuple[int, int, int, int]] = []
+    for x in range(0, cfg.bounds.width, cell_size):
+        for y in range(0, cfg.bounds.height, cell_size):
+            corners = [
+                (x, y),
+                (x + cell_size, y),
+                (x, y + cell_size),
+                (x + cell_size, y + cell_size),
+            ]
+            if all(
+                Tools.get_distance_line_point(cfg.lane.start, cfg.lane.end, (cx, cy)) > cfg.lane.min_distance
+                for cx, cy in corners
+            ):
+                regions.append((x, y, cell_size, cell_size))
     return regions
+
 
 class GridGenerator:
     def __init__(self, cfg: PlacementConfig, existing_rects: Optional[list[pygame.Rect]] = None):
@@ -82,16 +69,22 @@ class GridGenerator:
         t0 = time.perf_counter()
         placed: list[pygame.sprite.Sprite] = []
 
-        if self.cfg.placement_mode == "grid":
-            placed.extend(self._place_with_grid())
+        mode = self.cfg.placement_mode
 
-        remaining = self.cfg.count - len(placed)
+        if mode == "grid":
+            placed.extend(self._place_with_grid())
+        elif mode == "random":
+            placed.extend(self._place_with_random(self.cfg.count))
+        elif mode == "adaptive":
+            placed.extend(self._place_with_adaptive(self.cfg.count))
+        else:
+            # Fallback to random if an unknown mode is passed
+            placed.extend(self._place_with_random(self.cfg.count))
+
+        # Optional: top-up pass to hit the target count if a primary pass underfilled
+        remaining = max(0, self.cfg.count - len(placed))
         if remaining > 0:
-            # Ajuster dynamiquement la stratégie en fonction du nombre restant
-            if remaining > self.cfg.count * 0.5:  # Si plus de 50% reste à placer
-                placed.extend(self._place_with_adaptive(remaining))
-            else:
-                placed.extend(self._place_with_random(remaining))
+            placed.extend(self._place_with_random(remaining))
 
         for spr in placed:
             self.rects.append(spr.rect)
@@ -107,17 +100,10 @@ class GridGenerator:
             success_rate=(placed_n / self.cfg.count) if self.cfg.count else 0.0,
             avg_attempts_per_placed=(self.counters["total_attempts"] / placed_n) if placed_n else 0.0,
             elapsed_ms=elapsed_ms,
-            algorithm=self.cfg.placement_mode
+            algorithm=mode,
         )
-        print(f"Placement stats for {self.cfg.object_spec.factory.__name__ if hasattr(self.cfg.object_spec.factory, '__name__') else str(self.cfg.object_spec.factory)}:")
-        print(f"Requested: {self.cfg.count}, Placed: {placed_n}")
-        print(f"Total attempts: {self.counters['total_attempts']}")
-        print(f"Lane rejected: {self.counters['lane_rejected']}")
-        print(f"Collisions rejected: {self.counters['collisions_rejected']}")
-        print(f"Success rate: {stats.success_rate:.2%}")
-        print(f"Avg attempts per placed: {stats.avg_attempts_per_placed:.2f}")
-        print(f"Elapsed ms: {elapsed_ms:.2f}")
         return placed, self.rects, stats
+
 
     def _attempt_place(self, top_left: tuple[int, int]) -> Tuple[bool, Optional[pygame.sprite.Sprite]]:
         x, y = top_left
@@ -126,9 +112,15 @@ class GridGenerator:
         x = _clamp(x, 0, self.max_x)
         y = _clamp(y, 0, self.max_y)
 
-        cx, cy = x + (self.obj_w // 2), y + (self.obj_h // 2)
-
         test_rect = pygame.Rect(x, y, self.obj_w, self.obj_h)
+
+        # Lane avoidance: check the rect center (cheap & good enough) or tighten with more points if needed
+        cx, cy = test_rect.center
+        dist = Tools.get_distance_line_point(self.cfg.lane.start, self.cfg.lane.end, (cx, cy))
+        if dist <= self.cfg.lane.min_distance:
+            self.counters["lane_rejected"] += 1
+            return False, None
+
         if self.spatial.collides(test_rect):
             self.counters["collisions_rejected"] += 1
             return False, None
@@ -137,64 +129,60 @@ class GridGenerator:
         self.spatial.insert(spr.rect)
         return True, spr
 
-    def _place_with_grid(self) -> List[pygame.sprite.Sprite]:
-        sprites: list[pygame.sprite.Sprite] = []
-        if self.cfg.count == 0:
-            print("Warning: self.cfg.count is zero in _place_with_grid, returning empty list.")
-            return sprites
-        jitter_fraction = min(0.4, self.cfg.cell_jitter_fraction * 
-                            (1 - len(sprites) / self.cfg.count))  # Réduit le jitter progressivement
-        jitter_x = int(self.cell * jitter_fraction)
-        jitter_y = int(self.cell * jitter_fraction)
+    
 
-        for region in self.valid_regions:
+    def _place_with_adaptive(self, requested: int) -> List[pygame.sprite.Sprite]:
+        sprites: list[pygame.sprite.Sprite] = []
+
+        # Fallback: if precomputed regions are empty, just try the whole map via random
+        if not self.valid_regions:
+            return self._place_with_random(requested)
+
+        remaining = requested
+        # Number of attempts per region; at least 1 per region pass
+        attempts_per_region = max(1, math.ceil(remaining / len(self.valid_regions)))
+
+        for rx, ry, rw, rh in self.valid_regions:
+            if len(sprites) >= requested:
+                break
+            for _ in range(attempts_per_region):
+                # Safe because cell_size >= obj_w/obj_h by construction
+                x = rx + self.rng.randint(0, max(0, rw - self.obj_w))
+                y = ry + self.rng.randint(0, max(0, rh - self.obj_h))
+                ok, spr = self._attempt_place((x, y))
+                if ok and spr:
+                    sprites.append(spr)
+                    if len(sprites) >= requested:
+                        break
+        return sprites
+
+        
+    
+    def _place_with_grid(self):
+        sprites: list[pygame.sprite.Sprite] = []
+        jitter_x = int(self.cell * self.cfg.cell_jitter_fraction)
+        jitter_y = int(self.cell * self.cfg.cell_jitter_fraction)
+
+        for gx, gy in iter_candidate_cells(self.cfg.bounds.width, self.cfg.bounds.height, self.cell, self.rng):
             if len(sprites) >= self.cfg.count:
                 break
-            rx, ry, rw, rh = region
-            x = rx + self.rng.randint(-jitter_x, jitter_x) if jitter_x > 0 else rx
-            y = ry + self.rng.randint(-jitter_y, jitter_y) if jitter_y > 0 else ry
-            ok, spr = self._attempt_place((x, y))
+            off_x = self.rng.randint(-jitter_x, jitter_x) if jitter_x > 0 else 0
+            off_y = self.rng.randint(-jitter_y, jitter_y) if jitter_y > 0 else 0
+            ok, spr = self._attempt_place((gx + off_x, gy + off_y))
             if ok and spr:
                 sprites.append(spr)
-
         return sprites
 
-    def _place_with_adaptive(self, remaining: int) -> List[pygame.sprite.Sprite]:
+    def _place_with_random(self, remaining: int):
         sprites: list[pygame.sprite.Sprite] = []
-        attempts_per_region = max(1, remaining // len(self.valid_regions))
-        
-        for region in self.valid_regions:
-            if len(sprites) >= remaining:
-                break
-                
-            rx, ry, rw, rh = region
-            for _ in range(attempts_per_region):
-                x = rx + self.rng.randint(0, rw - self.obj_w)
-                y = ry + self.rng.randint(0, rh - self.obj_h)
-                
-                ok, spr = self._attempt_place((x, y))
-                if ok and spr:
-                    sprites.append(spr)
-                    break
-                    
-        return sprites
-
-    def _place_with_random(self, remaining: int) -> List[pygame.sprite.Sprite]:
-        sprites: list[pygame.sprite.Sprite] = []
-        max_attempts = self.cfg.max_attempts_per_item * 2  # Double les tentatives pour le placement aléatoire
-        
         for _ in range(remaining):
-            for _ in range(max_attempts):
-                region = self.rng.choice(self.valid_regions)
-                rx, ry, rw, rh = region
-                x = rx + self.rng.randint(0, rw - self.obj_w)
-                y = ry + self.rng.randint(0, rh - self.obj_h)
-                
-                ok, spr = self._attempt_place((x, y))
+            for _ in range(self.cfg.max_attempts_per_item):
+                rx = self.rng.randint(0, self.max_x) if self.max_x > 0 else 0
+                ry = self.rng.randint(0, self.max_y) if self.max_y > 0 else 0
+                ok, spr = self._attempt_place((rx, ry))
                 if ok and spr:
                     sprites.append(spr)
                     break
-                    
         return sprites
 
 __all__ = ["GridGenerator"]
