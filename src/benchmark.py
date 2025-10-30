@@ -90,7 +90,7 @@ def print_results(stats_list):
     print(f"🔁 Tentatives totales : {avg['total_attempts']:.1f}")
     print(f"🚧 Rejets (lane): {avg['lane_rejected']:.1f} | collisions: {avg['collisions_rejected']:.1f}")
     print(f"⚙️  Moy. tentatives/placement : {avg['avg_attempts_per_placed']:.2f}")
-    print(f"⏱ Temps moyen : {avg['elapsed_ms']:.2f} - Ecart type : {std.get('elapsed_ms', 0):.2f} ms")
+    print(f"⏱ Temps moyen : {avg['elapsed_ms']:.2f} ms - Ecart type : {std.get('elapsed_ms', 0):.2f} ms")
 
 
 # --- Boucle de test ---
