@@ -123,31 +123,26 @@ class GridGenerator:
         self.spatial.insert(spr.rect)
         return True, spr
 
-    
 
     def _place_with_adaptive(self, requested: int) -> List[pygame.sprite.Sprite]:
         sprites: list[pygame.sprite.Sprite] = []
 
-        # Fallback: if precomputed regions are empty, just try the whole map via random
-        if not self.valid_regions:
-            return self._place_with_random(requested)
+        if len(self.valid_regions) < requested:
+            for i in range(len(self.valid_regions)):
+                rx, ry, rw, rh = self.valid_regions[i]
 
-        remaining = requested
-        # Number of attempts per region; at least 1 per region pass
-        attempts_per_region = max(1, math.ceil(remaining / len(self.valid_regions)))
-
-        for rx, ry, rw, rh in self.valid_regions:
-            if len(sprites) >= requested:
-                break
-            for _ in range(attempts_per_region):
-                # Safe because cell_size >= obj_w/obj_h by construction
-                x = rx + random.randint(0, max(0, rw - self.obj_w))
-                y = ry + random.randint(0, max(0, rh - self.obj_h))
-                ok, spr = self._attempt_place((x, y))
+                ok, spr = self._attempt_place((rx, ry))
                 if ok and spr:
+                    self.spatial.insert(spr.rect)
                     sprites.append(spr)
-                    if len(sprites) >= requested:
-                        break
+        else:
+            for i in range(requested):
+                random_index = random.randint(0, len(self.valid_regions) - 1)
+                rx, ry, rw, rh = self.valid_regions[random_index]
+                ok, spr = self._attempt_place((rx, ry))
+                if ok and spr:
+                    self.spatial.insert(spr.rect)
+                    sprites.append(spr)
         return sprites
 
         

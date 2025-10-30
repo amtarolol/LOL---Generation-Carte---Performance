@@ -18,7 +18,7 @@ class Buff(pygame.sprite.Sprite):
             return
         fw, fh = Buff._frame_size
         surf = pygame.Surface((fw, fh), pygame.SRCALPHA)
-        pygame.draw.circle(surf, (255, 0, 0), (fw // 2, fh // 2), fw // 2)
+        pygame.draw.rect(surf, (127, 0, 255), (0, 0, fw, fh))
         Buff._frame = surf
 
     @staticmethod
