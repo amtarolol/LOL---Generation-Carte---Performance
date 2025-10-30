@@ -4,7 +4,7 @@ from typing import Optional
 from entities.Bush import Bush
 from entities.Buff import Buff
 from .types import PlacementConfig, MapBounds, Lane, ObjectSpec
-from .grid_generator import GridGenerator
+from .grid_generator_improved import GridGenerator
 
 
 def generate_sprites(

@@ -13,6 +13,7 @@ class GenStats:
     success_rate: float
     avg_attempts_per_placed: float
     elapsed_ms: float
+    algorithm: str
 
 
 @dataclass(frozen=True)

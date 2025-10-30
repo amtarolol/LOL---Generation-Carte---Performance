@@ -92,6 +92,7 @@ class GameScene(Scene):
                 f"Buff: {self.buff_stats.placed}/{self.buff_stats.requested}  "
                 f"laneRej {self.buff_stats.lane_rejected}  collRej {self.buff_stats.collisions_rejected}",
                 f"Time: bush {self.bush_stats.elapsed_ms:.1f} ms  buff {self.buff_stats.elapsed_ms:.1f} ms",
+                f"Placement: {self.placement}  Seed: {self.seed}",
             ]
             y = 10
             for s in lines:

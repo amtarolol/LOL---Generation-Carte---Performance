@@ -72,6 +72,7 @@ class GridGenerator:
             success_rate=(placed_n / self.cfg.count) if self.cfg.count else 0.0,
             avg_attempts_per_placed=(self.counters["total_attempts"] / placed_n) if placed_n else 0.0,
             elapsed_ms=elapsed_ms,
+            algorithm=self.cfg.placement_mode
         )
         return placed, self.rects, stats
 
