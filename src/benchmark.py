@@ -103,21 +103,21 @@ for type in types:
     for mode in modes:
         def run():
             return generate_sprites(
-                total_to_place=3000,
+                total_to_place=300,
                 map_width=1000,
                 map_height=1000,
                 get_size=type.get_size,
                 factory=lambda pos: type(pos),
                 lane_start_point=(0, 50),
                 lane_end_point=(1000, 950),
-                min_distance_to_lane=20,
+                min_distance_to_lane=50,
                 max_placement_attempts=100,
                 existing_object_rects=[],
                 rng=0,
                 placement_mode=mode,
             )
 
-        result = benchmark_with_tracemalloc(run, repeat=10)
+        result = benchmark_with_tracemalloc(run, repeat=5)
 
         print(f"=== {str(type):<5} | Mode: {mode:<6} ===")
         print_results(result["results"])
