@@ -42,7 +42,7 @@ class GameScene(Scene):
             factory=lambda pos: Bush(pos),
             lane_start_point=self.start_pt,
             lane_end_point=self.end_pt,
-            min_distance_to_lane=100,
+            min_distance_to_lane=50,
             max_placement_attempts=100,
             existing_object_rects=None,
             placement_mode=self.placement
@@ -56,7 +56,7 @@ class GameScene(Scene):
             factory=lambda pos: Buff(pos),
             lane_start_point=self.start_pt,
             lane_end_point=self.end_pt,
-            min_distance_to_lane=20,
+            min_distance_to_lane=50,
             max_placement_attempts=100,
             existing_object_rects=rects_bush,
             placement_mode=self.placement

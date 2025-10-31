@@ -100,6 +100,6 @@ for mode in modes:
 
     result = benchmark_with_tracemalloc(run, repeat=5)
 
-    print(f"=== {str(type):<5} | Mode: {mode:<6} ===")
+    print(f"=== Dummy | Mode: {mode:<6} ===")
     print_results(result["results"])
     print(f"💾 Pic mémoire : {result['mean_mem_kb']:.1f} - Ecart type : {result['std_mem_kb']:.1f} Ko\n")
