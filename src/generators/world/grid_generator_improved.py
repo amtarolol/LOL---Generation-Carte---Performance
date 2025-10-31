@@ -131,18 +131,21 @@ class GridGenerator:
             for i in range(len(self.valid_regions)):
                 rx, ry, rw, rh = self.valid_regions[i]
 
-                ok, spr = self._attempt_place((rx, ry))
-                if ok and spr:
-                    self.spatial.insert(spr.rect)
-                    sprites.append(spr)
+                test_rect = pygame.Rect(rx, ry, self.obj_w, self.obj_h)
+                cx, cy = test_rect.center
+                spr = self.cfg.object_spec.factory((cx, cy))
+                self.spatial.insert(spr.rect)
+                sprites.append(spr)
         else:
             for i in range(requested):
                 random_index = random.randint(0, len(self.valid_regions) - 1)
                 rx, ry, rw, rh = self.valid_regions[random_index]
-                ok, spr = self._attempt_place((rx, ry))
-                if ok and spr:
-                    self.spatial.insert(spr.rect)
-                    sprites.append(spr)
+
+                test_rect = pygame.Rect(rx, ry, self.obj_w, self.obj_h)
+                cx, cy = test_rect.center
+                spr = self.cfg.object_spec.factory((cx, cy))
+                self.spatial.insert(spr.rect)
+                sprites.append(spr)
         return sprites
 
         
