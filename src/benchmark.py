@@ -21,19 +21,6 @@ class Dummy(pygame.sprite.Sprite):
         return Dummy._frame_size
 
 
-class Bush(pygame.sprite.Sprite):
-
-    def __init__(self, pos, bush_type=None):
-        super().__init__()
-        # Charger ou récupérer l'image depuis le cache
-        self.image = pygame.Surface(self.get_size())
-        self.rect = self.image.get_rect(center=pos)
-    
-    @classmethod
-    def get_size(cls):
-        return (32, 32)
-
-
 # --- Benchmark Function ---
 def benchmark_with_tracemalloc(func, repeat=10):
     mem_peaks = []
